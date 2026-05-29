@@ -11,9 +11,9 @@ function Notifications() {
   const [body, setBody] = useState("")
   const [posting, setPosting] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [search, setSearch] = useState("")
   const navigate = useNavigate()
 
-  // Get current user role
   useEffect(() => {
     const unsubAuth = auth.onAuthStateChanged(async (u) => {
       if (!u) { navigate("/login"); return }
@@ -26,7 +26,6 @@ function Notifications() {
     return () => unsubAuth()
   }, [])
 
-  // Listen to notifications in real time
   useEffect(() => {
     const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"))
     const unsub = onSnapshot(q, (snapshot) => {
@@ -67,6 +66,13 @@ function Notifications() {
     })
   }
 
+  const canPost = ["admin", "lecturer", "hoc"].includes(userRole)
+
+  const filtered = notifications.filter(n =>
+    n.title?.toLowerCase().includes(search.toLowerCase()) ||
+    n.body?.toLowerCase().includes(search.toLowerCase())
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -85,21 +91,20 @@ function Notifications() {
           </div>
         </div>
 
-        {/* Admin post button */}
-        {userRole === "admin" && (
+        {canPost && (
           <button
             onClick={() => setShowForm(!showForm)}
             className="bg-blue-900 hover:bg-blue-800 text-white text-sm px-4 py-2 rounded-lg transition-colors"
           >
-            {showForm ? "Cancel" : "+ Post Notification"}
+            {showForm ? "Cancel" : "+ Post"}
           </button>
         )}
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8">
 
-        {/* Admin post form */}
-        {userRole === "admin" && showForm && (
+        {/* Post form */}
+        {canPost && showForm && (
           <div className="bg-white border border-blue-100 rounded-2xl p-6 mb-6">
             <h3 className="text-sm font-semibold text-blue-900 mb-4">New Notification</h3>
             <div className="space-y-3">
@@ -134,14 +139,23 @@ function Notifications() {
           </div>
         )}
 
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search notifications..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm outline-none focus:border-blue-900 transition-colors mb-6"
+        />
+
         {/* Notifications list */}
         <div className="space-y-4">
-          {notifications.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <p className="text-4xl mb-3">🔔</p>
-              <p className="text-sm">No notifications yet</p>
+              <p className="text-sm">{search ? "No results found" : "No notifications yet"}</p>
             </div>
-          ) : notifications.map(n => (
+          ) : filtered.map(n => (
             <div key={n.id} className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-blue-100 transition-colors">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -150,15 +164,14 @@ function Notifications() {
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
                 <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-blue-900 text-xs font-bold">
                     {n.postedBy?.[0]?.toUpperCase() || "A"}
                   </div>
                   <span className="text-xs font-medium text-gray-700">{n.postedBy}</span>
-                  {n.role === "admin" && (
-                    <span className="text-blue-500 text-xs" title="Verified Admin">✓</span>
+                  {(n.role === "admin" || n.role === "lecturer" || n.role === "hoc") && (
+                    <span className="text-blue-500 text-xs" title="Verified Staff">✓</span>
                   )}
                 </div>
                 <span className="text-xs text-gray-400">{formatDate(n.createdAt)}</span>

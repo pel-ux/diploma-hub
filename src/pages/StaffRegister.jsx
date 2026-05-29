@@ -1,60 +1,68 @@
 import { useState } from "react"
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth"
+import { createUserWithEmailAndPassword } from "firebase/auth"
 import { auth, db } from "../services/firebase.js"
-import { doc, setDoc, getDoc } from "firebase/firestore"
+import { doc, setDoc } from "firebase/firestore"
 import { useNavigate } from "react-router-dom"
 
-const provider = new GoogleAuthProvider()
+const LECTURER_CODE = import.meta.env.VITE_LECTURER_CODE
+const HOC_CODE = import.meta.env.VITE_HOC_CODE
 
-function Register() {
+function StaffRegister() {
   const [name, setName] = useState("")
-  const [studentId, setStudentId] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
+  const [accessCode, setAccessCode] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
+  const getRole = (code) => {
+    if (code === LECTURER_CODE) return "lecturer"
+    if (code === HOC_CODE) return "hoc"
+    return null
+  }
+
   const handleRegister = async () => {
-    if (password !== confirm) {
-      alert("Passwords do not match")
+    setError("")
+
+    if (!name.trim()) { setError("Please enter your full name"); return }
+    if (!email.trim()) { setError("Please enter your email"); return }
+    if (password !== confirm) { setError("Passwords do not match"); return }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return }
+
+    const role = getRole(accessCode)
+    if (!role) {
+      setError("Invalid access code. Contact your administrator.")
       return
     }
+
+    setLoading(true)
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
+
       await setDoc(doc(db, "users", user.uid), {
         name: name,
-        studentId: studentId,
         email: email,
-        role: "student",
+        role: role,
         createdAt: new Date()
       })
-      navigate("/dashboard")
-    } catch (error) {
-      alert(error.message)
-    }
-  }
 
-  const handleGoogle = async () => {
-    try {
-      const result = await signInWithPopup(auth, provider)
-      const user = result.user
-      const userRef = doc(db, "users", user.uid)
-      const userDoc = await getDoc(userRef)
-      if (!userDoc.exists() || !userDoc.data().studentId) {
-        await setDoc(userRef, {
-          name: user.displayName,
-          email: user.email,
-          role: "student",
-          createdAt: new Date()
-        }, { merge: true })
-        navigate("/complete-profile")
+      if (role === "lecturer") {
+        navigate("/lecturer-dashboard")
       } else {
-        navigate("/dashboard")
+        navigate("/hoc-dashboard")
       }
+
     } catch (error) {
-      alert(error.message)
+      if (error.code === "auth/email-already-in-use") {
+        setError("This email is already registered. Sign in instead.")
+      } else {
+        setError(error.message)
+      }
     }
+    setLoading(false)
   }
 
   return (
@@ -63,7 +71,7 @@ function Register() {
       {/* Left - image */}
       <div className="w-full h-48 lg:h-auto lg:w-1/2">
         <img
-          src="/mesii.jpg"
+          src="/dp.jpg"
           alt="hero"
           className="w-full h-full object-cover"
         />
@@ -80,42 +88,18 @@ function Register() {
             <h1 className="text-gray-900 text-lg font-semibold">DiplomaHub</h1>
           </div>
 
-          <h3 className="text-2xl font-semibold text-blue-900 mb-1">Create account</h3>
-          <p className="text-sm text-gray-500 mb-8">Fill in your details to get started</p>
+          <h3 className="text-2xl font-semibold text-blue-900 mb-1">Create staff account</h3>
+          <p className="text-sm text-gray-500 mb-8">You need a valid access code to register as staff</p>
 
           <div className="space-y-4">
-
-            <button
-              onClick={handleGoogle}
-              className="w-full flex items-center justify-center gap-3 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 py-2.5 rounded-lg text-sm font-medium transition-colors"
-            >
-              <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" />
-              Continue with Google
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-100"></div>
-              <span className="text-xs text-gray-400">or continue with email</span>
-              <div className="flex-1 h-px bg-gray-100"></div>
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1.5">Full Name</label>
               <input
                 type="text"
-                placeholder="e.g. Omojola Emmanuel"
+                placeholder=""
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm outline-none focus:border-blue-900 focus:bg-white transition-colors"
                 onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1.5">Student ID</label>
-              <input
-                type="text"
-                placeholder="e.g. DN123456789012"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm outline-none focus:border-blue-900 focus:bg-white transition-colors"
-                onChange={(e) => setStudentId(e.target.value.toUpperCase())}
               />
             </div>
 
@@ -149,17 +133,35 @@ function Register() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1.5">Staff Access Code</label>
+              <input
+                type="password"
+                placeholder="Enter your access code"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm outline-none focus:border-blue-900 focus:bg-white transition-colors"
+                onChange={(e) => setAccessCode(e.target.value)}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Lecturer code or HOC code — contact your administrator
+              </p>
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-500 bg-red-50 px-4 py-2.5 rounded-lg">{error}</p>
+            )}
+
             <button
               onClick={handleRegister}
-              className="w-full bg-blue-900 hover:bg-blue-800 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
+              disabled={loading}
+              className="w-full bg-blue-900 hover:bg-blue-800 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
             >
-              Create account
+              {loading ? "Creating account..." : "Create staff account"}
             </button>
 
             <p className="text-center text-sm text-gray-500">
-              Already have an account?{" "}
+              Already have a staff account?{" "}
               <span
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/staff-login")}
                 className="text-amber-600 cursor-pointer hover:underline"
               >
                 Sign in
@@ -173,4 +175,4 @@ function Register() {
   )
 }
 
-export default Register
+export default StaffRegister

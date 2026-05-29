@@ -2,6 +2,7 @@ import { useState } from "react"
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth"
 import { auth } from "../services/firebase.js"
 import { useNavigate } from "react-router-dom"
+import heroImage from "/mesii.jpg"
 
 const provider = new GoogleAuthProvider()
 
@@ -31,30 +32,41 @@ function Login() {
   return (
     <div className="min-h-screen flex">
 
-      {/* Left panel */}
+
       <div className="hidden lg:flex w-2/5 bg-blue-900 flex-col justify-between p-12">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-amber-400 rounded-lg flex items-center justify-center">
-            <span className="text-blue-900 text-xs font-bold">D</span>
-          </div>
-          <h1 className="text-white text-lg font-semibold">DiplomaHub</h1>
-        </div>
-        <div>
-          <h2 className="text-white text-3xl font-medium leading-snug mb-4">
-            Welcome back to your academic hub.
-          </h2>
-          <p className="text-blue-200 text-sm leading-relaxed">
-            Sign in to access notifications, exam prep, and your AI study assistant.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {['Biology', 'Chemistry', 'Physics', 'Mathematics'].map(s => (
-            <span key={s} className="bg-white/10 text-blue-100 text-xs px-3 py-1 rounded-full border border-white/20">
-              {s}
-            </span>
-          ))}
-        </div>
-      </div>
+  <div className="flex items-center gap-2">
+    <div className="w-7 h-7 bg-amber-400 rounded-lg flex items-center justify-center">
+      <span className="text-blue-900 text-xs font-bold">D</span>
+    </div>
+    <h1 className="text-white text-lg font-semibold">DiplomaHub</h1>
+  </div>
+
+  {/* Add image here */}
+  <div className="flex-1 flex items-center justify-center py-8">
+    <img
+      src={heroImage}
+      alt="hero"
+      className="w-full max-w-xs rounded-2xl object-cover"
+    />
+  </div>
+
+  <div>
+    <h2 className="text-white text-3xl font-medium leading-snug mb-4">
+      Join your diploma programme portal.
+    </h2>
+    <p className="text-blue-200 text-sm leading-relaxed">
+      Create your account to access notifications, exam prep, and your AI study assistant.
+    </p>
+  </div>
+
+  <div className="flex gap-2 flex-wrap">
+    {['CMD', 'CSD', 'DSD'].map(s => (
+      <span key={s} className="bg-white/10 text-blue-100 text-xs px-3 py-1 rounded-full border border-white/20">
+        {s}
+      </span>
+    ))}
+  </div>
+</div>
 
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
